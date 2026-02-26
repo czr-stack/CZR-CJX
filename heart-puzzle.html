@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>日期问答</title>
+    <!-- PWA 相关标签 -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#764ba2">
+    <meta name="description" content="我们在一起的日期是？">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Ccircle cx='90' cy='90' r='80' fill='%23ff6b81'/%3E%3Ctext x='90' y='95' font-size='40' text-anchor='middle' fill='white'%3E📅%3C/text%3E%3C/svg%3E">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="日期问答">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        h1 {
+            color: white;
+            font-size: 2rem;
+            margin-bottom: 10px;
+            text-align: center;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+        .question {
+            color: white;
+            font-size: 1.2rem;
+            margin-bottom: 30px;
+            text-align: center;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+        .input-container {
+            width: 90vw;
+            max-width: 400px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(31,38,135,0.37);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.18);
+            padding: 30px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            align-items: center;
+        }
+        input {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 25px;
+            background: rgba(255,255,255,0.1);
+            color: white;
+            font-size: 1.1rem;
+            text-align: center;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+        input::placeholder {
+            color: rgba(255,255,255,0.6);
+        }
+        input:focus {
+            border-color: #4ecdc4;
+            box-shadow: 0 0 10px rgba(78, 205, 196, 0.5);
+        }
+        button {
+            padding: 12px 30px;
+            background: rgba(255,255,255,0.2);
+            border: 1px solid rgba(255,255,255,0.3);
+            border-radius: 25px;
+            color: white;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            min-width: 150px;
+        }
+        button:hover {
+            background: rgba(255,255,255,0.3);
+            transform: translateY(-2px);
+        }
+        .message {
+            color: white;
+            font-size: 1.1rem;
+            text-align: center;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+            padding: 15px;
+            border-radius: 10px;
+            width: 100%;
+            margin-top: 10px;
+        }
+        .message.show {
+            opacity: 1;
+        }
+        .message.correct {
+            background: rgba(76, 175, 80, 0.3);
+            border: 1px solid rgba(76, 175, 80, 0.5);
+        }
+        .message.incorrect {
+            background: rgba(244, 67, 54, 0.3);
+            border: 1px solid rgba(244, 67, 54, 0.5);
+        }
+        @media (max-width: 480px) {
+            h1 {
+                font-size: 1.5rem;
+            }
+            .question {
+                font-size: 1rem;
+            }
+            .input-container {
+                padding: 20px;
+            }
+            input {
+                padding: 12px;
+                font-size: 1rem;
+            }
+            button {
+                padding: 10px 20px;
+            }
+            .message {
+                font-size: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>📅 日期问答</h1>
+    <div class="question">我们在一起的日期是？</div>
+    
+    <div class="input-container">
+        <input type="text" id="answerInput" placeholder="请输入答案">
+        <button id="submitBtn">提交答案</button>
+        <div class="message" id="message"></div>
+    </div>
+
+    <script>
+        // 正确答案的不同格式
+        const correctAnswers = [
+            '2025年8月27日',
+            '2025.8.27',
+            '8.27',
+            '8月27日',
+            '2025-8-27',
+            '2025/8/27',
+            '2025年8月27',
+            '8月27',
+            '2025 8 27'
+        ];
+        
+        // 提交按钮点击事件
+        document.getElementById('submitBtn').addEventListener('click', checkAnswer);
+        
+        // 输入框回车事件
+        document.getElementById('answerInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                checkAnswer();
+            }
+        });
+        
+        // 检查答案
+        function checkAnswer() {
+            const userInput = document.getElementById('answerInput').value.trim();
+            const messageElement = document.getElementById('message');
+            const questionElement = document.querySelector('.question');
+            const h1Element = document.querySelector('h1');
+            
+            // 检查是否匹配任何正确格式
+            const isCorrect = correctAnswers.some(answer => {
+                // 去除所有空白字符和标点符号后比较
+                const normalizedInput = userInput.replace(/[\s\-\/\.]/g, '');
+                const normalizedAnswer = answer.replace(/[\s\-\/\.]/g, '');
+                return normalizedInput === normalizedAnswer;
+            });
+            
+            if (isCorrect) {
+                // 答案正确
+                messageElement.textContent = '陈佳雪，我陈宗瑞会一直一直陪着你，永远爱你';
+                messageElement.className = 'message show correct';
+                
+                // 隐藏问题部分
+                if (questionElement) questionElement.style.display = 'none';
+                if (h1Element) h1Element.style.display = 'none';
+            } else {
+                // 答案错误
+                messageElement.textContent = '❌ 回答错误，请再试一次！';
+                messageElement.className = 'message show incorrect';
+            }
+        }
+        
+        // 注册Service Worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('service-worker.js')
+                    .then((registration) => {
+                        console.log('Service Worker 注册成功:', registration.scope);
+                    })
+                    .catch((error) => {
+                        console.log('Service Worker 注册失败:', error);
+                    });
+            });
+        }
+    </script>
+</body>
+</html>
